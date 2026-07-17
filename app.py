@@ -114,13 +114,14 @@ for gu in overlap_any:
     lat, lon = coord['위도'].values[0], coord['경도'].values[0]
     reason_text = '·'.join(gu_reasons[gu]) + ' 부족'
     warn_html = (
-        '<div style="background-color:black;color:white;padding:3px 6px;border-radius:4px;'
-        'font-size:11px;font-weight:bold;white-space:nowrap;text-align:center;">'
+        '<div style="background-color:black;color:white;padding:2px 5px;border-radius:4px;'
+        'font-size:10px;font-weight:bold;white-space:nowrap;text-align:center;'
+        'box-shadow:0 0 3px rgba(0,0,0,0.5);">'
         f'⚠ {gu}<br>{reason_text}</div>'
     )
     folium.Marker(
-        [lat, lon],
-        icon=folium.DivIcon(icon_size=(140, 36), icon_anchor=(70, 45), html=warn_html)
+        [lat + 0.008, lon],
+        icon=folium.DivIcon(icon_size=(130, 32), icon_anchor=(65, 32), html=warn_html)
     ).add_to(m)
 
 resource_colors = {'의사인원수': '#e6194B', '간호사인원수': '#3cb44b', '사회복지사인원수': '#f58231'}
