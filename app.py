@@ -243,7 +243,7 @@ with map_layout_left:
 
 with data_layout_right:
     if final_gu:
-        st.markdown(f"### 📍 **{final_gu}** 실시간 치매지원 지표")
+        st.markdown(f"### 📍 **{final_gu}** 실시간 치매환자 지원 인프라 지표")
 
         row = df_use_total[df_use_total['시군구'] == final_gu]
         if not row.empty:
