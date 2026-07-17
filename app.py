@@ -58,7 +58,6 @@ vmin, vmax = min(patient_dict.values()), max(patient_dict.values())
 colormap = cm.LinearColormap(colors=['#e0f7f5', '#00b4d8', '#1a3636'], vmin=vmin, vmax=vmax)
 colormap.caption = '추정치매환자수 밀도'
 
-# ---------------- 클릭/선택 상태 계산 (지도가 다시 그려져도 값 유지) ----------------
 clicked_gu = None
 for k, v in st.session_state.items():
     if k.startswith("seoul_map_") and isinstance(v, dict) and v.get('last_object_clicked_tooltip'):
@@ -76,7 +75,6 @@ final_gu = (
 
 centers = df_center[df_center['시군구명'] == final_gu] if final_gu else pd.DataFrame()
 
-# ---------------- 지도 초기화 (흰 배경, 서울 자치구만 표시) ----------------
 m = folium.Map(
     location=[37.5665, 126.9780],
     tiles=None,
@@ -168,7 +166,6 @@ for gu_name in overlap_any:
         icon=folium.DivIcon(icon_size=(140, 24), icon_anchor=(70, 12), html=warn_html)
     ).add_to(m)
 
-# ---------------- 선택된 자치구의 치매안심센터 마커 전부 표시 ----------------
 if final_gu and not centers.empty:
     for _, crow in centers.iterrows():
         folium.Marker(
@@ -185,7 +182,6 @@ if final_gu and not centers.empty:
             fill=False
         ).add_to(m)
 
-# 왼쪽 하단 범례
 n_bins = 4
 bin_edges = np.linspace(vmin, vmax, n_bins + 1)
 legend_items_html = ""
@@ -211,7 +207,6 @@ legend_html_bottomleft = f'''
 '''
 m.get_root().html.add_child(folium.Element(legend_html_bottomleft))
 
-# ---------------- 헤더 + 범례 ----------------
 legend_col1, legend_col2 = st.columns([2, 1])
 with legend_col1:
     st.subheader("💪자치구별 치매환자 지원인력 현황")
@@ -232,7 +227,6 @@ with legend_col2:
         unsafe_allow_html=True
     )
 
-# ---------------- 2단 레이아웃: 왼쪽 지도, 오른쪽 상세정보 ----------------
 panel_width = st.slider("오른쪽 상세정보 패널 너비 조절", min_value=20, max_value=60, value=35, step=5, format="%d%%")
 left_ratio = 100 - panel_width
 map_layout_left, data_layout_right = st.columns([left_ratio, panel_width])
@@ -274,23 +268,6 @@ with data_layout_right:
             total_social = centers['사회복지사인원수'].sum()
 
             summary_table = pd.DataFrame({
-                '의사수': [total_doc],
-                '간호사수': [total_nurse],
-                '사회복지사수': [total_social]
-            })
-            st.dataframe(summary_table, use_container_width=True, hide_index=True)
-
-            st.write("")
-            st.caption(f"🏢 관내 등록 치매안심센터 세부 인력 ({len(centers)}개, 지도에 📍로 표시됨)")
-            display_df = (
-                centers.set_index('치매센터명')[['의사인원수', '간호사인원수', '사회복지사인원수']]
-                .T
-            )
-            st.dataframe(display_df, use_container_width=True)
-        else:
-            st.info("이 구에는 등록된 치매안심센터 정보가 없어요.")
-
-summary_table = pd.DataFrame({
                 '의사수': [total_doc],
                 '간호사수': [total_nurse],
                 '사회복지사수': [total_social]
@@ -361,6 +338,49 @@ with rank_col2:
 
 if '성북구' in top4['시군구명'].values or '성북구' in bottom4['시군구명'].values:
     st.caption("※ 성북구는 본소·분소 인력 수치가 원본 데이터상 동일하게 등록되어 있어, 중복 입력 여부가 의심됩니다. 순위는 원본 합산값 기준입니다.")
+
+st.markdown("---")
+st.subheader("👨‍⚕️ 의사 1인당 추정치매환자수 TOP 5 자치구")
+
+df_ratio = df_center_agg.merge(
+    df_use_total[['시군구', '추정치매환자수']],
+    left_on='시군구명', right_on='시군구'
+)
+df_ratio = df_ratio[df_ratio['의사인원수'] > 0].copy()
+df_ratio['의사1인당_환자수'] = (df_ratio['추정치매환자수'] / df_ratio['의사인원수']).round(0).astype(int)
+
+top5_ratio = (
+    df_ratio.sort_values('의사1인당_환자수', ascending=False)
+    .head(5)[['시군구명', '의사1인당_환자수']]
+    .reset_index(drop=True)
+)
+
+fig = px.bar(
+    top5_ratio.sort_values('의사1인당_환자수'),
+    x='의사1인당_환자수',
+    y='시군구명',
+    orientation='h',
+    text='의사1인당_환자수',
+    color='의사1인당_환자수',
+    color_continuous_scale='Purples'
+)
+fig.update_traces(
+    texttemplate='%{text:.0f}명',
+    textposition='outside',
+    textfont=dict(size=14)
+)
+fig.update_layout(
+    xaxis_title='의사 1인당 추정치매환자수 (명)',
+    yaxis_title=None,
+    coloraxis_showscale=False,
+    height=350,
+    margin=dict(t=20, l=10, r=30, b=10)
+)
+st.plotly_chart(fig, use_container_width=True)
+
+zero_doctor_gu = df_center_agg[df_center_agg['의사인원수'] == 0]['시군구명'].tolist()
+if zero_doctor_gu:
+    st.caption(f"⚠️ 의사 0명인 자치구({', '.join(zero_doctor_gu)})는 비율 계산에서 제외했습니다.")
 
 st.markdown("---")
 st.subheader("🏆 인력별 최다 배치 자치구")
