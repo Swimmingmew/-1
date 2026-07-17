@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import folium
@@ -91,14 +90,14 @@ colormap.add_to(m)
 for feature in seoul_geo['features']:
     gu_name = feature['properties']['name']
     centroid = shape(feature['geometry']).centroid
+    label_html = (
+        '<div style="font-size:11px;font-weight:bold;color:#222;text-align:center;'
+        'text-shadow:1px 1px 2px white,-1px -1px 2px white,1px -1px 2px white,-1px 1px 2px white;">'
+        + gu_name + '</div>'
+    )
     folium.Marker(
         location=[centroid.y, centroid.x],
-        icon=folium.DivIcon(
-            icon_size=(80, 20), icon_anchor=(40, 10),
-            html=f\'\'\'<div style="font-size:11px;font-weight:bold;color:#222;text-align:center;
-                text-shadow:1px 1px 2px white,-1px -1px 2px white,1px -1px 2px white,-1px 1px 2px white;">
-                {gu_name}</div>\'\'\'
-        )
+        icon=folium.DivIcon(icon_size=(80, 20), icon_anchor=(40, 10), html=label_html)
     ).add_to(m)
 
 overlap_geo = {"type": "FeatureCollection",
@@ -114,14 +113,14 @@ for gu in overlap_any:
         continue
     lat, lon = coord['위도'].values[0], coord['경도'].values[0]
     reason_text = '·'.join(gu_reasons[gu]) + ' 부족'
+    warn_html = (
+        '<div style="background-color:black;color:white;padding:3px 6px;border-radius:4px;'
+        'font-size:11px;font-weight:bold;white-space:nowrap;text-align:center;">'
+        f'⚠ {gu}<br>{reason_text}</div>'
+    )
     folium.Marker(
         [lat, lon],
-        icon=folium.DivIcon(
-            icon_size=(140, 36), icon_anchor=(70, 45),
-            html=f\'\'\'<div style="background-color:black;color:white;padding:3px 6px;border-radius:4px;
-                font-size:11px;font-weight:bold;white-space:nowrap;text-align:center;">
-                ⚠ {gu}<br>{reason_text}</div>\'\'\'
-        )
+        icon=folium.DivIcon(icon_size=(140, 36), icon_anchor=(70, 45), html=warn_html)
     ).add_to(m)
 
 resource_colors = {'의사인원수': '#e6194B', '간호사인원수': '#3cb44b', '사회복지사인원수': '#f58231'}
@@ -138,14 +137,14 @@ for col, color in resource_colors.items():
                 continue
             lat = coord['위도'].values[0] + off_lat
             lon = coord['경도'].values[0] + off_lon
+            emoji_html = (
+                f'<div style="font-size:16px; text-align:center; line-height:22px;'
+                f'background-color:white; border:2px solid {color}; border-radius:50%;'
+                f'width:24px; height:24px;">{emoji}</div>'
+            )
             folium.Marker(
                 [lat, lon],
-                icon=folium.DivIcon(
-                    icon_size=(26, 26), icon_anchor=(13, 13),
-                    html=f\'\'\'<div style="font-size:16px; text-align:center; line-height:22px;
-                        background-color:white; border:2px solid {color}; border-radius:50%;
-                        width:24px; height:24px;">{emoji}</div>\'\'\'
-                ),
+                icon=folium.DivIcon(icon_size=(26, 26), icon_anchor=(13, 13), html=emoji_html),
                 tooltip=f"{row['시군구명']} - {col} {emoji} ({row[col]}명)"
             ).add_to(m)
 
