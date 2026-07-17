@@ -273,9 +273,22 @@ with data_layout_right:
             total_nurse = centers['간호사인원수'].sum()
             total_social = centers['사회복지사인원수'].sum()
 
-            max_doc = df_center_agg['의사인원수'].max()
-            max_nurse = df_center_agg['간호사인원수'].max()
-            max_social = df_center_agg['사회복지사인원수'].max()
+            summary_table = pd.DataFrame({
+                '의사수': [total_doc],
+                '간호사수': [total_nurse],
+                '사회복지사수': [total_social]
+            })
+            st.dataframe(summary_table, use_container_width=True, hide_index=True)
+
+            st.write("")
+            st.caption(f"🏢 관내 등록 치매안심센터 세부 인력 ({len(centers)}개, 지도에 📍로 표시됨)")
+            display_df = (
+                centers.set_index('치매센터명')[['의사인원수', '간호사인원수', '사회복지사인원수']]
+                .T
+            )
+            st.dataframe(display_df, use_container_width=True)
+        else:
+            st.info("이 구에는 등록된 치매안심센터 정보가 없어요.")
 
 summary_table = pd.DataFrame({
                 '의사수': [total_doc],
