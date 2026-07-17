@@ -168,3 +168,51 @@ if final_gu:
         st.info("이 구에는 등록된 치매안심센터 정보가 없어요.")
 else:
     st.info("지도에서 자치구를 클릭하거나, 왼쪽에서 자치구를 선택하면 상세정보가 여기 표시돼요.")
+
+st.markdown("---")
+st.subheader("📊 치매안심센터 인력 상위 4 / 하위 4 자치구")
+
+tab1, tab2, tab3 = st.tabs(["의사수", "간호사수", "사회복지사수"])
+
+def show_rank_table(col_name):
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown(f"**🔼 {col_name} 상위 4개 구**")
+        top4_df = (
+            df_center_agg.sort_values(col_name, ascending=False)
+            .head(4)[['시군구명', col_name]]
+            .reset_index(drop=True)
+        )
+        top4_df.index = top4_df.index + 1
+        st.dataframe(top4_df, use_container_width=True)
+
+    with col2:
+        st.markdown(f"**🔽 {col_name} 하위 4개 구**")
+        bottom4_df = (
+            df_center_agg.sort_values(col_name)
+            .head(4)[['시군구명', col_name]]
+            .reset_index(drop=True)
+        )
+        bottom4_df.index = bottom4_df.index + 1
+        st.dataframe(bottom4_df, use_container_width=True)
+
+with tab1:
+    show_rank_table('의사인원수')
+
+with tab2:
+    show_rank_table('간호사인원수')
+
+with tab3:
+    show_rank_table('사회복지사인원수')
+
+st.markdown("---")
+st.subheader("⚠️ 환자수 상위 4개 구 중 인력 부족 구")
+if overlap_any:
+    overlap_df = pd.DataFrame([
+        {'시군구': gu, '부족 인력': '·'.join(gu_reasons[gu])}
+        for gu in sorted(overlap_any)
+    ])
+    st.dataframe(overlap_df, use_container_width=True, hide_index=True)
+else:
+    st.info("해당하는 자치구가 없습니다.")
