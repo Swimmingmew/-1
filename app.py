@@ -124,58 +124,60 @@ for gu in overlap_any:
         icon=folium.DivIcon(icon_size=(130, 32), icon_anchor=(65, 32), html=warn_html)
     ).add_to(m)
 
-resource_colors = {'의사인원수': '#e6194B', '간호사인원수': '#3cb44b', '사회복지사인원수': '#f58231'}
-offsets = {'의사인원수': (0.003, 0), '간호사인원수': (-0.003, 0.003), '사회복지사인원수': (-0.003, -0.003)}
-
-import math
-
-# ---------------- 인력수 상위4(😊) / 하위4(😢) 이모지 마커 (겹침 방지) ----------------
+# ---------------- 구별 배지 통합 (겹침 원천 차단) ----------------
 resource_colors = {'의사인원수': '#e6194B', '간호사인원수': '#3cb44b', '사회복지사인원수': '#f58231'}
 
-# 구별로 몇 번째 마커인지 세기 위한 카운터
-gu_marker_count = {}
+# 구별로 표시할 배지(이모지) 목록 모으기
+gu_badges = {}  # {구명: [(emoji, color, tooltip_text), ...]}
 
-def get_spread_position(gu, base_lat, base_lon, radius=0.0035):
-    """같은 구에 마커가 여러 개면 중심 주위에 원형으로 퍼뜨림"""
-    idx = gu_marker_count.get(gu, 0)
-    gu_marker_count[gu] = idx + 1
-
-    if idx == 0:
-        return base_lat, base_lon  # 첫 마커는 중심에
-
-    # 두 번째부터는 각도를 나눠서 원 둘레에 배치
-    angle = (idx - 1) * (2 * math.pi / 6)  # 최대 6개 기준 균등 배치
-    lat = base_lat + radius * math.cos(angle)
-    lon = base_lon + radius * math.sin(angle) / math.cos(math.radians(base_lat))
-    return lat, lon
-
-# 처리 순서를 고정해서 같은 구는 항상 같은 위치에 마커가 오도록 함
-marker_order = []
-for col in resource_colors.keys():
+for col, color in resource_colors.items():
     top4 = df_center_agg.sort_values(col, ascending=False).head(4)
     bot4 = df_center_agg.sort_values(col).head(4)
     for _, row in top4.iterrows():
-        marker_order.append((row['시군구명'], col, '😊'))
+        gu_badges.setdefault(row['시군구명'], []).append(('😊', color, f"{col} 상위4"))
     for _, row in bot4.iterrows():
-        marker_order.append((row['시군구명'], col, '😢'))
+        gu_badges.setdefault(row['시군구명'], []).append(('😢', color, f"{col} 하위4"))
 
-for gu_name, col, emoji in marker_order:
+# 구별로 배지 + 경고 라벨을 하나의 마커(HTML 박스)로 합쳐서 표시
+for gu_name in set(list(gu_badges.keys()) + list(overlap_any)):
     coord = gu_coord[gu_coord['시군구명'] == gu_name]
     if coord.empty:
         continue
-    base_lat, base_lon = coord['위도'].values[0], coord['경도'].values[0]
-    lat, lon = get_spread_position(gu_name, base_lat, base_lon)
-    color = resource_colors[col]
+    lat, lon = coord['위도'].values[0], coord['경도'].values[0]
 
-    emoji_html = (
-        f'<div style="font-size:14px; text-align:center; line-height:20px;'
-        f'background-color:white; border:2px solid {color}; border-radius:50%;'
-        f'width:22px; height:22px; box-shadow:0 0 2px rgba(0,0,0,0.6);">{emoji}</div>'
+    # 배지 아이콘들을 가로로 나열
+    badges = gu_badges.get(gu_name, [])
+    badge_html = ''.join(
+        f'<span style="display:inline-block; width:16px; height:16px; line-height:14px; '
+        f'font-size:11px; text-align:center; background:white; border:1.5px solid {color}; '
+        f'border-radius:50%; margin:1px;">{emoji}</span>'
+        for emoji, color, _ in badges
     )
+    tooltip_text = f"{gu_name}: " + ', '.join(t for _, _, t in badges)
+
+    # 경고 문구(있으면 추가)
+    warn_line = ''
+    if gu_name in overlap_any:
+        reason_text = '·'.join(gu_reasons[gu_name]) + ' 부족'
+        warn_line = (
+            f'<div style="background:black;color:white;font-size:9px;font-weight:bold;'
+            f'border-radius:3px;padding:1px 4px;margin-top:2px;white-space:nowrap;">'
+            f'⚠ {reason_text}</div>'
+        )
+        tooltip_text += f" | 환자수 많음+{reason_text}"
+
+    box_html = (
+        '<div style="display:flex; flex-direction:column; align-items:center; '
+        'transform:translateY(-100%);">'  # 박스 전체를 좌표 위쪽으로 띄움
+        f'<div style="white-space:nowrap;">{badge_html}</div>'
+        f'{warn_line}'
+        '</div>'
+    )
+
     folium.Marker(
         [lat, lon],
-        icon=folium.DivIcon(icon_size=(22, 22), icon_anchor=(11, 11), html=emoji_html),
-        tooltip=f"{gu_name} - {col} {emoji}"
+        icon=folium.DivIcon(icon_size=(150, 50), icon_anchor=(75, 50), html=box_html),
+        tooltip=tooltip_text
     ).add_to(m)
 
 st.subheader("🗺️ 자치구별 치매현황 지도 (자치구를 클릭하면 하단에 상세정보가 표시돼요)")
