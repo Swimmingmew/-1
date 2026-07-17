@@ -58,40 +58,22 @@ vmin, vmax = min(patient_dict.values()), max(patient_dict.values())
 colormap = cm.LinearColormap(colors=['#1a3636', '#00b4d8', '#00f5d4'], vmin=vmin, vmax=vmax)
 colormap.caption = '추정치매환자수 밀도'
 
-# ---------------- [새 기능 2 준비] 이전 클릭/선택 상태를 미리 읽어옴 ----------------
-# (Streamlit은 리런 시작 시점에 session_state가 이미 최신 상호작용 값으로 동기화되므로,
-#  위젯을 만들기 전에 미리 읽어도 이번 리런의 값을 정확히 반영함)
+# ---------------- 클릭/선택 상태 계산 (지도가 다시 그려져도 값 유지) ----------------
 prev_map_state = st.session_state.get("seoul_map")
 clicked_gu = None
 if prev_map_state and prev_map_state.get('last_object_clicked_tooltip'):
     clicked_gu = prev_map_state['last_object_clicked_tooltip'].strip()
 
-# 새로 클릭된 구가 있으면 세션에 저장(기억), 없으면 이전에 저장된 값을 계속 사용
 if clicked_gu:
     st.session_state['persisted_clicked_gu'] = clicked_gu
 persisted_gu = st.session_state.get('persisted_clicked_gu')
 
-# 사이드바에서 '전체'가 아닌 구를 직접 고르면 그게 우선, 아니면 기억해둔 클릭 구 사용
 final_gu = (
     selected_gu_sidebar if selected_gu_sidebar != '전체'
     else (persisted_gu if persisted_gu else None)
 )
 
-# 구가 바뀌면 이전에 선택했던 센터 마커는 초기화
-if st.session_state.get("last_final_gu") != final_gu:
-    st.session_state.pop("center_table", None)
-st.session_state["last_final_gu"] = final_gu
-
 centers = df_center[df_center['시군구명'] == final_gu] if final_gu else pd.DataFrame()
-
-# 표에서 선택된 센터 좌표 찾기
-selected_center_row = None
-sel_state = st.session_state.get("center_table")
-if sel_state and sel_state.get("selection", {}).get("columns"):
-    selected_name = sel_state["selection"]["columns"][0]
-    match = centers[centers['치매센터명'] == selected_name]
-    if not match.empty:
-        selected_center_row = match.iloc[0]
 
 # ---------------- 지도 초기화 (흰 배경, 서울 자치구만 표시) ----------------
 m = folium.Map(
@@ -112,7 +94,7 @@ m.get_root().html.add_child(folium.Element(
 def style_function(feature):
     gu = feature['properties']['name']
     val = patient_dict.get(gu, 0)
-    is_selected = (gu == selected_gu_sidebar)
+    is_selected = (gu == final_gu)
     return {
         'fillColor': colormap(val),
         'color': '#7b1fa2' if is_selected else '#999999',
@@ -185,21 +167,22 @@ for gu_name in overlap_any:
         icon=folium.DivIcon(icon_size=(140, 24), icon_anchor=(70, 12), html=warn_html)
     ).add_to(m)
 
-# ---------------- [새 기능 2] 표에서 선택한 센터를 지도에 별도 마커로 강조 ----------------
-if selected_center_row is not None:
-    folium.Marker(
-        location=[selected_center_row['위도'], selected_center_row['경도']],
-        popup=selected_center_row['치매센터명'],
-        tooltip=f"📍 선택됨: {selected_center_row['치매센터명']}",
-        icon=folium.Icon(color='red', icon='plus-sign')
-    ).add_to(m)
-    folium.CircleMarker(
-        location=[selected_center_row['위도'], selected_center_row['경도']],
-        radius=18,
-        color='#e6194B',
-        weight=3,
-        fill=False
-    ).add_to(m)
+# ---------------- 선택된 자치구의 치매안심센터 마커 전부 표시 ----------------
+if final_gu and not centers.empty:
+    for _, crow in centers.iterrows():
+        folium.Marker(
+            location=[crow['위도'], crow['경도']],
+            popup=crow['치매센터명'],
+            tooltip=f"📍 {crow['치매센터명']}",
+            icon=folium.Icon(color='red', icon='plus-sign')
+        ).add_to(m)
+        folium.CircleMarker(
+            location=[crow['위도'], crow['경도']],
+            radius=16,
+            color='#e6194B',
+            weight=2,
+            fill=False
+        ).add_to(m)
 
 # 왼쪽 하단 범례
 n_bins = 4
@@ -298,20 +281,13 @@ with data_layout_right:
             st.write(f"사회복지사 수: {total_social}명")
             st.progress(social_pct)
 
-            # ---------------- [새 기능 1+2] 전치 표 (센터명이 열) + 열 선택 시 지도 마커 ----------------
             st.write("")
-            st.caption("🏢 관내 등록 치매안심센터 세부 인력 (센터명을 클릭하면 지도에 표시돼요)")
+            st.caption(f"🏢 관내 등록 치매안심센터 세부 인력 ({len(centers)}개, 지도에 📍로 표시됨)")
             display_df = (
                 centers.set_index('치매센터명')[['의사인원수', '간호사인원수', '사회복지사인원수']]
                 .T
             )
-            st.dataframe(
-                display_df,
-                use_container_width=True,
-                key="center_table",
-                on_select="rerun",
-                selection_mode="single-column"
-            )
+            st.dataframe(display_df, use_container_width=True)
         else:
             st.info("이 구에는 등록된 치매안심센터 정보가 없어요.")
 
@@ -324,7 +300,7 @@ with data_layout_right:
             <div style="border: 2px dashed #444; border-radius: 10px; padding: 40px 20px; text-align: center; margin-top: 50px;">
                 <p style="font-size: 40px; margin: 0;">🖱️</p>
                 <h4 style="color: #bbb; margin-top: 15px;">자치구를 클릭해 보세요!</h4>
-                <p style="font-size: 13px; color: #777; margin: 5px 0 0 0;">지도에서 보고 싶은 자치구를 클릭하면 실시간 상세 정보 시각화 그래프가 이 영역에 나타납니다.</p>
+                <p style="font-size: 13px; color: #777; margin: 5px 0 0 0;">지도에서 보고 싶은 자치구를 클릭하면 실시간 상세 정보와 센터 위치가 이 영역과 지도에 함께 표시됩니다.</p>
             </div>
             """,
             unsafe_allow_html=True
@@ -374,7 +350,6 @@ if overlap_any:
 else:
     st.info("해당하는 자치구가 없습니다.")
 
-# ---------------- [새 기능 3] 의사 1인당 추정치매환자수 TOP 5 자치구 ----------------
 st.markdown("---")
 st.subheader("👨‍⚕️ 의사 1인당 추정치매환자수 TOP 5 자치구")
 
