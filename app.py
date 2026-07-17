@@ -254,7 +254,9 @@ left_ratio = 100 - panel_width
 map_layout_left, data_layout_right = st.columns([left_ratio, panel_width])
 
 with map_layout_left:
-    map_data = st_folium(m, key="seoul_map", width=None, height=650, use_container_width=True)
+    map_container = st.container(height=660)
+    with map_container:
+        map_data = st_folium(m, key="seoul_map", width=None, height=650, use_container_width=True)
 
 with data_layout_right:
     if final_gu:
