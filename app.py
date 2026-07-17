@@ -183,17 +183,37 @@ with legend_col2:
 map_layout_left, data_layout_right = st.columns([7, 4])
 
 # ---------------- 왼쪽 하단 범례 (추정치매환자수 밀도) ----------------
+# ---------------- 왼쪽 하단 범례 (구간별 색상 박스) ----------------
+import numpy as np
+
+# 4단계로 구간 나누기 (균등 분할 기준)
+values = sorted(patient_dict.values())
+n_bins = 4
+bin_edges = np.linspace(vmin, vmax, n_bins + 1)
+
+legend_items_html = ""
+for i in range(n_bins):
+    low, high = bin_edges[i], bin_edges[i + 1]
+    mid_val = (low + high) / 2
+    color = colormap(mid_val)
+    if i == n_bins - 1:
+        label = f"{low:,.0f}명 이상"
+    else:
+        label = f"{low:,.0f} ~ {high:,.0f}명"
+    legend_items_html += f'''
+    <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+        <span style="display:inline-block; width:16px; height:16px; border-radius:3px;
+                     background:{color}; border:1px solid #ccc;"></span>
+        <span style="font-size:11px; color:#333;">{label}</span>
+    </div>
+    '''
+
 legend_html_bottomleft = f'''
 <div style="position: fixed; bottom: 40px; left: 40px; z-index:9999;
-            background-color:white; padding:10px 14px; border:1px solid #ddd; border-radius:8px;
+            background-color:white; padding:12px 16px; border:1px solid #ddd; border-radius:8px;
             box-shadow:0 2px 6px rgba(0,0,0,0.15); font-size:12px;">
-    <div style="font-weight:bold; margin-bottom:6px;">추정치매환자수 밀도</div>
-    <div style="width:160px; height:12px; border-radius:4px;
-                background: linear-gradient(90deg, {colormap.colors[0]}, {colormap.colors[len(colormap.colors)//2]}, {colormap.colors[-1]});">
-    </div>
-    <div style="display:flex; justify-content:space-between; margin-top:3px; color:#666;">
-        <span>{vmin:,.0f}</span><span>{vmax:,.0f}</span>
-    </div>
+    <div style="font-weight:bold; margin-bottom:8px;">추정치매환자수 밀도</div>
+    {legend_items_html}
 </div>
 '''
 m.get_root().html.add_child(folium.Element(legend_html_bottomleft))
