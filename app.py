@@ -219,8 +219,8 @@ legend_html_bottomleft = f'''
 m.get_root().html.add_child(folium.Element(legend_html_bottomleft))
 
 with map_layout_left:
-    # 인터랙티브 지도 렌더링
-    map_data = st_folium(m, width=750, height=580)
+    # 인터랙티브 지도 렌더링 (컬럼 폭에 자동으로 맞춤)
+    map_data = st_folium(m, width=None, height=580, use_container_width=True)
 
 # 클릭 이벤트를 통해 활성화할 자치구 추출
 clicked_gu = None
