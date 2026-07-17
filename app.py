@@ -6,6 +6,7 @@ from streamlit_folium import st_folium
 from shapely.geometry import shape
 import json
 import numpy as np
+import plotly.express as px
 
 st.set_page_config(page_title="서울시 치매안심센터 현황", layout="wide")
 
@@ -242,7 +243,7 @@ with map_layout_left:
 
 with data_layout_right:
     if final_gu:
-        st.markdown(f"### 📍 **{final_gu}** 실시간 치매환자 지원 인프라 지표")
+        st.markdown(f"### 📍 **{final_gu}** 2025 치매환자 지원 인프라 지표")
 
         row = df_use_total[df_use_total['시군구'] == final_gu]
         if not row.empty:
@@ -290,7 +291,7 @@ with data_layout_right:
         else:
             st.info("이 구에는 등록된 치매안심센터 정보가 없어요.")
 
-if final_gu in overlap_any:
+        if final_gu in overlap_any:
             st.error(f"⚠️ **{final_gu}**는 치매 환자수에 비해 **{'·'.join(gu_reasons[final_gu])}** 인력이 현저히 부족합니다.")
 
         if final_gu == '성북구':
@@ -333,8 +334,6 @@ bottom4_sorted = df_rank.sort_values(
 ).reset_index(drop=True)
 bottom4_raw = bottom4_sorted.head(4)
 
-# 순위 번호는 "적은 순" 기준 뒤에서부터(전체 구 수 - 3위 ~ 전체 구 수)로 매기되,
-# 표 안에서는 적은 순서 그대로(1등이 가장 적음) 보여줌
 n_total = len(df_rank)
 bottom4 = build_rank_table(bottom4_raw, start_rank=n_total - 3)
 
@@ -365,10 +364,8 @@ top5_ratio = (
     .reset_index(drop=True)
 )
 
-import plotly.express as px
-
 fig = px.bar(
-    top5_ratio.sort_values('의사1인당_환자수'),  # 가로 막대는 아래에서 위로 그려지므로 오름차순 정렬
+    top5_ratio.sort_values('의사1인당_환자수'),
     x='의사1인당_환자수',
     y='시군구명',
     orientation='h',
