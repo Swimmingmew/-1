@@ -38,7 +38,6 @@ for gu in top4_patients_gu:
         overlap_any.add(gu)
         gu_reasons[gu] = reasons
 
-# --- 상단 헤더 및 전체 요약 지표 ---
 st.title("🧠 서울시 치매환자 지원현황")
 
 c1, c2, c3, c4 = st.columns(4)
@@ -49,13 +48,11 @@ c4.metric("총 간호사 수", f"{df_center['간호사인원수'].sum():,.0f}명
 
 st.markdown("---")
 
-# --- 사이드바 조회 설정 ---
 st.sidebar.header("🔍 조회 설정")
 gu_options = ['전체'] + sorted(df_use_total['시군구'].unique().tolist())
 selected_gu_sidebar = st.sidebar.selectbox("자치구 선택", gu_options)
 resource_type = st.sidebar.radio("인력 지표 선택", ['의사인원수', '간호사인원수', '사회복지사인원수'])
 
-# --- 지도 데이터 및 스타일 세팅 ---
 patient_dict = df_use_total.set_index('시군구')['추정치매환자수'].to_dict()
 vmin, vmax = min(patient_dict.values()), max(patient_dict.values())
 colormap = cm.LinearColormap(colors=['#1a3636', '#00b4d8', '#00f5d4'], vmin=vmin, vmax=vmax)
@@ -73,12 +70,10 @@ m = folium.Map(
     keyboard=False
 )
 
-# 배경을 확실히 흰색으로 고정
 m.get_root().html.add_child(folium.Element(
     "<style>.leaflet-container{background:#ffffff !important;}</style>"
 ))
 
-# 폴리곤 스타일 및 바인딩
 def style_function(feature):
     gu = feature['properties']['name']
     val = patient_dict.get(gu, 0)
@@ -98,19 +93,17 @@ geo_layer = folium.GeoJson(
 )
 geo_layer.add_to(m)
 
-# ---------------- 서울 전체 경계에 자동으로 맞추기 (잘림 방지) ----------------
+# 서울 전체 경계에 자동으로 맞추기 (컬럼 폭이 바뀌어도 잘리지 않게)
 all_lats, all_lons = [], []
 for feature in seoul_geo['features']:
     poly = shape(feature['geometry'])
     minx, miny, maxx, maxy = poly.bounds
     all_lons.extend([minx, maxx])
     all_lats.extend([miny, maxy])
-
 sw = [min(all_lats), min(all_lons)]
 ne = [max(all_lats), max(all_lons)]
-m.fit_bounds([sw, ne], padding=(15, 15))
+m.fit_bounds([sw, ne], padding=(10, 10))
 
-# 자치구명 라벨 추가
 gu_centroids = {}
 for feature in seoul_geo['features']:
     gu_name = feature['properties']['name']
@@ -127,29 +120,26 @@ for feature in seoul_geo['features']:
         icon=folium.DivIcon(icon_size=(80, 20), icon_anchor=(40, 10), html=label_html)
     ).add_to(m)
 
-# 인력 부족 자치구 시각화 테두리 (네온 레드)
 overlap_geo = {"type": "FeatureCollection",
                "features": [f for f in seoul_geo['features'] if f['properties']['name'] in overlap_any]}
 folium.GeoJson(
     overlap_geo,
     style_function=lambda x: {
-        'fillColor': '#ff4d4d', 
-        'fillOpacity': 0.1,      
-        'color': '#ff4d4d',       
-        'weight': 3, 
+        'fillColor': '#ff4d4d',
+        'fillOpacity': 0.1,
+        'color': '#ff4d4d',
+        'weight': 3,
         'dashArray': '4, 4'
     },
     tooltip=folium.GeoJsonTooltip(fields=['name'], aliases=[''], labels=False, sticky=True),
     highlight_function=lambda x: {'weight': 3, 'fillOpacity': 0.3}
 ).add_to(m)
 
-# 인력 부족 뱃지 추가
 for gu_name in overlap_any:
     if gu_name not in gu_centroids:
         continue
     lat, lon = gu_centroids[gu_name]
     reason_text = '·'.join(gu_reasons[gu_name]) + ' 부족'
-    
     warn_html = (
         '<div style="background: rgba(255, 77, 77, 0.85); color: white; padding: 3px 8px; border-radius: 20px;'
         'font-size: 10px; font-weight: bold; white-space: nowrap; text-align: center;'
@@ -161,20 +151,15 @@ for gu_name in overlap_any:
         icon=folium.DivIcon(icon_size=(140, 24), icon_anchor=(70, 12), html=warn_html)
     ).add_to(m)
 
-# ---------------- 왼쪽 하단 범례 (구간별 색상 박스) ----------------
-values = sorted(patient_dict.values())
+# 왼쪽 하단 범례 (구간별 색상 박스)
 n_bins = 4
 bin_edges = np.linspace(vmin, vmax, n_bins + 1)
-
 legend_items_html = ""
 for i in range(n_bins):
     low, high = bin_edges[i], bin_edges[i + 1]
     mid_val = (low + high) / 2
     color = colormap(mid_val)
-    if i == n_bins - 1:
-        label = f"{low:,.0f}명 이상"
-    else:
-        label = f"{low:,.0f} ~ {high:,.0f}명"
+    label = f"{low:,.0f}명 이상" if i == n_bins - 1 else f"{low:,.0f} ~ {high:,.0f}명"
     legend_items_html += f'''
     <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
         <span style="display:inline-block; width:16px; height:16px; border-radius:3px;
@@ -182,20 +167,18 @@ for i in range(n_bins):
         <span style="font-size:11px; color:#333;">{label}</span>
     </div>
     '''
-
 legend_html_bottomleft = f'''
-<div style="position: fixed; bottom: 40px; left: 40px; z-index:9999;
-            background-color:white; padding:12px 16px; border:1px solid #ddd; border-radius:8px;
+<div style="position: absolute; bottom: 10px; left: 10px; z-index:9999;
+            background-color:white; padding:10px 14px; border:1px solid #ddd; border-radius:8px;
             box-shadow:0 2px 6px rgba(0,0,0,0.15); font-size:12px;">
-    <div style="font-weight:bold; margin-bottom:8px;">추정치매환자수 밀도</div>
+    <div style="font-weight:bold; margin-bottom:6px;">추정치매환자수 밀도</div>
     {legend_items_html}
 </div>
 '''
 m.get_root().html.add_child(folium.Element(legend_html_bottomleft))
 
-# ---------------- 지도 위 헤더/범례 (인포그래픽 범례) ----------------
+# ---------------- 헤더 + 범례 ----------------
 legend_col1, legend_col2 = st.columns([2, 1])
-
 with legend_col1:
     st.subheader("💪자치구별 치매환자 지원인력 현황")
 with legend_col2:
@@ -215,88 +198,85 @@ with legend_col2:
         unsafe_allow_html=True
     )
 
-# ---------------- 지도: 원래 크기 그대로, 전체 폭 표시 ----------------
-map_data = st_folium(m, width=1100, height=650)
+# ---------------- 2단 레이아웃: 왼쪽 지도, 오른쪽 상세정보 (너비 조절 가능) ----------------
+panel_width = st.slider("오른쪽 상세정보 패널 너비 조절", min_value=20, max_value=60, value=35, step=5, format="%d%%")
+left_ratio = 100 - panel_width
+map_layout_left, data_layout_right = st.columns([left_ratio, panel_width])
 
-# 클릭 이벤트를 통해 활성화할 자치구 추출
+with map_layout_left:
+    map_data = st_folium(m, width=None, height=650, use_container_width=True)
+
 clicked_gu = None
 if map_data and map_data.get('last_object_clicked_tooltip'):
     clicked_gu = map_data['last_object_clicked_tooltip'].strip()
 
 final_gu = clicked_gu if clicked_gu else (selected_gu_sidebar if selected_gu_sidebar != '전체' else None)
 
-st.markdown("---")
+with data_layout_right:
+    if final_gu:
+        st.markdown(f"### 📍 **{final_gu}** 실시간 치매 지표")
 
-# ---------------- 지도 아래 상세 정보 섹션 (전체 폭) ----------------
-if final_gu:
-    st.markdown(f"### 📍 **{final_gu}** 실시간 치매 지표")
+        row = df_use_total[df_use_total['시군구'] == final_gu]
+        if not row.empty:
+            r = row.iloc[0]
+            st.markdown(
+                f"""
+                <div style="background-color: #1e222b; padding: 15px; border-radius: 10px; border-left: 5px solid #00f5d4; margin-bottom: 15px;">
+                    <p style="margin: 0; font-size: 12px; color: #888;">추정 치매 환자수</p>
+                    <h2 style="margin: 5px 0 0 0; color: #00f5d4;">{r['추정치매환자수']:,.0f} 명</h2>
+                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #ccc;">전체 노인 인구 {r['노인인구수']:,.0f}명 중 약 <b>{r['추정치매환자유병률']}%</b> 유병률</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-    row = df_use_total[df_use_total['시군구'] == final_gu]
-    if not row.empty:
-        r = row.iloc[0]
+        st.markdown("🧑‍⚕️ **지정 자치구 의료 인력 현황**")
+        centers = df_center[df_center['시군구명'] == final_gu]
+
+        if not centers.empty:
+            total_doc = centers['의사인원수'].sum()
+            total_nurse = centers['간호사인원수'].sum()
+            total_social = centers['사회복지사인원수'].sum()
+
+            max_doc = df_center_agg['의사인원수'].max()
+            max_nurse = df_center_agg['간호사인원수'].max()
+            max_social = df_center_agg['사회복지사인원수'].max()
+
+            doc_pct = min(float(total_doc / max_doc), 1.0) if max_doc else 0.0
+            nurse_pct = min(float(total_nurse / max_nurse), 1.0) if max_nurse else 0.0
+            social_pct = min(float(total_social / max_social), 1.0) if max_social else 0.0
+
+            st.write(f"의사 수: {total_doc}명")
+            st.progress(doc_pct)
+            st.write(f"간호사 수: {total_nurse}명")
+            st.progress(nurse_pct)
+            st.write(f"사회복지사 수: {total_social}명")
+            st.progress(social_pct)
+
+            st.write("")
+            st.caption("🏢 관내 등록 치매안심센터 세부 인력")
+            st.dataframe(
+                centers[['치매센터명', '의사인원수', '간호사인원수', '사회복지사인원수']],
+                use_container_width=True, hide_index=True
+            )
+        else:
+            st.info("이 구에는 등록된 치매안심센터 정보가 없어요.")
+
+        if final_gu in overlap_any:
+            st.error(f"⚠️ **{final_gu}**는 치매 환자수에 비해 **{'·'.join(gu_reasons[final_gu])}** 인력이 현저히 부족합니다.")
+
+    else:
         st.markdown(
-            f"""
-            <div style="background-color: #1e222b; padding: 15px; border-radius: 10px; border-left: 5px solid #00f5d4; margin-bottom: 15px;">
-                <p style="margin: 0; font-size: 12px; color: #888;">추정 치매 환자수</p>
-                <h2 style="margin: 5px 0 0 0; color: #00f5d4;">{r['추정치매환자수']:,.0f} 명</h2>
-                <p style="margin: 5px 0 0 0; font-size: 12px; color: #ccc;">전체 노인 인구 {r['노인인구수']:,.0f}명 중 약 <b>{r['추정치매환자유병률']}%</b> 유병률</p>
+            """
+            <div style="border: 2px dashed #444; border-radius: 10px; padding: 40px 20px; text-align: center; margin-top: 50px;">
+                <p style="font-size: 40px; margin: 0;">🖱️</p>
+                <h4 style="color: #bbb; margin-top: 15px;">자치구를 클릭해 보세요!</h4>
+                <p style="font-size: 13px; color: #777; margin: 5px 0 0 0;">지도에서 보고 싶은 자치구를 클릭하면 실시간 상세 정보 시각화 그래프가 이 영역에 나타납니다.</p>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-    st.markdown("🧑‍⚕️ **지정 자치구 의료 인력 현황**")
-    centers = df_center[df_center['시군구명'] == final_gu]
-
-    if not centers.empty:
-        total_doc = centers['의사인원수'].sum()
-        total_nurse = centers['간호사인원수'].sum()
-        total_social = centers['사회복지사인원수'].sum()
-
-        max_doc = df_center_agg['의사인원수'].max()
-        max_nurse = df_center_agg['간호사인원수'].max()
-        max_social = df_center_agg['사회복지사인원수'].max()
-
-        doc_pct = min(float(total_doc / max_doc), 1.0) if max_doc else 0.0
-        nurse_pct = min(float(total_nurse / max_nurse), 1.0) if max_nurse else 0.0
-        social_pct = min(float(total_social / max_social), 1.0) if max_social else 0.0
-
-        col_p1, col_p2, col_p3 = st.columns(3)
-        with col_p1:
-            st.write(f"의사 수: {total_doc}명")
-            st.progress(doc_pct)
-        with col_p2:
-            st.write(f"간호사 수: {total_nurse}명")
-            st.progress(nurse_pct)
-        with col_p3:
-            st.write(f"사회복지사 수: {total_social}명")
-            st.progress(social_pct)
-
-        st.write("")
-        st.caption("🏢 관내 등록 치매안심센터 세부 인력")
-        st.dataframe(
-            centers[['치매센터명', '의사인원수', '간호사인원수', '사회복지사인원수']],
-            use_container_width=True, hide_index=True
-        )
-    else:
-        st.info("이 구에는 등록된 치매안심센터 정보가 없어요.")
-
-    if final_gu in overlap_any:
-        st.error(f"⚠️ **{final_gu}**는 치매 환자수에 비해 **{'·'.join(gu_reasons[final_gu])}** 인력이 현저히 부족합니다.")
-
-else:
-    st.markdown(
-        """
-        <div style="border: 2px dashed #444; border-radius: 10px; padding: 40px 20px; text-align: center; margin-top: 20px;">
-            <p style="font-size: 40px; margin: 0;">🖱️</p>
-            <h4 style="color: #bbb; margin-top: 15px;">자치구를 클릭해 보세요!</h4>
-            <p style="font-size: 13px; color: #777; margin: 5px 0 0 0;">지도에서 보고 싶은 자치구를 클릭하면 실시간 상세 정보 시각화 그래프가 이 영역에 나타납니다.</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-# --- 하단 데이터 테이블 영역 ---
 st.markdown("---")
 st.subheader("📊 치매안심센터 인력 상위 4 / 하위 4 자치구")
 
@@ -304,7 +284,6 @@ tab1, tab2, tab3 = st.tabs(["의사수", "간호사수", "사회복지사수"])
 
 def show_rank_table(col_name):
     col1, col2 = st.columns(2)
-
     with col1:
         st.markdown(f"**🔼 {col_name} 상위 4개 구**")
         top4_df = (
@@ -314,7 +293,6 @@ def show_rank_table(col_name):
         )
         top4_df.index = top4_df.index + 1
         st.dataframe(top4_df, use_container_width=True)
-
     with col2:
         st.markdown(f"**🔽 {col_name} 하위 4개 구**")
         bottom4_df = (
@@ -327,10 +305,8 @@ def show_rank_table(col_name):
 
 with tab1:
     show_rank_table('의사인원수')
-
 with tab2:
     show_rank_table('간호사인원수')
-
 with tab3:
     show_rank_table('사회복지사인원수')
 
