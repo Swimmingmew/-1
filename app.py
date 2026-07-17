@@ -51,7 +51,6 @@ st.markdown("---")
 st.sidebar.header("🔍 조회 설정")
 gu_options = ['전체'] + sorted(df_use_total['시군구'].unique().tolist())
 selected_gu_sidebar = st.sidebar.selectbox("자치구 선택", gu_options)
-resource_type = st.sidebar.radio("인력 지표 선택", ['의사인원수', '간호사인원수', '사회복지사인원수'])
 
 patient_dict = df_use_total.set_index('시군구')['추정치매환자수'].to_dict()
 vmin, vmax = min(patient_dict.values()), max(patient_dict.values())
