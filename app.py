@@ -66,7 +66,16 @@ clicked_gu = None
 if prev_map_state and prev_map_state.get('last_object_clicked_tooltip'):
     clicked_gu = prev_map_state['last_object_clicked_tooltip'].strip()
 
-final_gu = clicked_gu if clicked_gu else (selected_gu_sidebar if selected_gu_sidebar != '전체' else None)
+# 새로 클릭된 구가 있으면 세션에 저장(기억), 없으면 이전에 저장된 값을 계속 사용
+if clicked_gu:
+    st.session_state['persisted_clicked_gu'] = clicked_gu
+persisted_gu = st.session_state.get('persisted_clicked_gu')
+
+# 사이드바에서 '전체'가 아닌 구를 직접 고르면 그게 우선, 아니면 기억해둔 클릭 구 사용
+final_gu = (
+    selected_gu_sidebar if selected_gu_sidebar != '전체'
+    else (persisted_gu if persisted_gu else None)
+)
 
 # 구가 바뀌면 이전에 선택했던 센터 마커는 초기화
 if st.session_state.get("last_final_gu") != final_gu:
