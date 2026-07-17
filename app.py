@@ -22,7 +22,6 @@ df_center_agg = (
     df_center.groupby('시군구명')[['의사인원수', '간호사인원수', '사회복지사인원수']]
     .sum().reset_index()
 )
-gu_coord = df_center.groupby('시군구명')[['위도', '경도']].mean().reset_index()
 
 top4_patients_gu = set(df_use_total.sort_values('추정치매환자수', ascending=False).head(4)['시군구'])
 bottom4 = {
@@ -65,7 +64,20 @@ vmin, vmax = min(patient_dict.values()), max(patient_dict.values())
 colormap = cm.LinearColormap(colors=['#f3e5f5', '#7b1fa2', '#3a0066'], vmin=vmin, vmax=vmax)
 colormap.caption = '추정치매환자수'
 
-m = folium.Map(location=[37.5665, 126.9780], zoom_start=11, tiles='cartodbpositron')
+# ---------------- 지도 기본 틀 (줌/더블클릭/휠 줌 잠금) ----------------
+m = folium.Map(
+    location=[37.5665, 126.9780],
+    zoom_start=11,
+    min_zoom=11,
+    max_zoom=11,
+    tiles='cartodbpositron',
+    zoom_control=False,
+    scrollWheelZoom=False,
+    dragging=False,        # ← True에서 False로 변경 (이동 완전 잠금)
+    doubleClickZoom=False,
+    touchZoom=False,
+    keyboard=False          # 키보드 화살표로 지도 이동하는 것도 함께 막음
+)
 
 def style_function(feature):
     gu = feature['properties']['name']
@@ -87,9 +99,13 @@ geo_layer = folium.GeoJson(
 geo_layer.add_to(m)
 colormap.add_to(m)
 
+# ---------------- 구별 폴리곤 중심좌표 계산 (이름 라벨 + 배지 위치 공통 기준) ----------------
+gu_centroids = {}
 for feature in seoul_geo['features']:
     gu_name = feature['properties']['name']
     centroid = shape(feature['geometry']).centroid
+    gu_centroids[gu_name] = (centroid.y, centroid.x)
+
     label_html = (
         '<div style="font-size:11px;font-weight:bold;color:#222;text-align:center;'
         'text-shadow:1px 1px 2px white,-1px -1px 2px white,1px -1px 2px white,-1px 1px 2px white;">'
@@ -107,11 +123,10 @@ folium.GeoJson(
     style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 4, 'dashArray': '5,5'}
 ).add_to(m)
 
-# ---------------- 구별 배지(이모지) + 경고 라벨 통합 표시 ----------------
+# ---------------- 구별 배지(이모지) + 경고 라벨 통합 표시 (폴리곤 중심 기준) ----------------
 resource_colors = {'의사인원수': '#e6194B', '간호사인원수': '#3cb44b', '사회복지사인원수': '#f58231'}
 
-gu_badges = {}  # {구명: [(emoji, color, tooltip_text), ...]}
-
+gu_badges = {}
 for col, color in resource_colors.items():
     top4 = df_center_agg.sort_values(col, ascending=False).head(4)
     bot4 = df_center_agg.sort_values(col).head(4)
@@ -121,10 +136,9 @@ for col, color in resource_colors.items():
         gu_badges.setdefault(row['시군구명'], []).append(('😢', color, f"{col} 하위4"))
 
 for gu_name in set(list(gu_badges.keys()) + list(overlap_any)):
-    coord = gu_coord[gu_coord['시군구명'] == gu_name]
-    if coord.empty:
+    if gu_name not in gu_centroids:
         continue
-    lat, lon = coord['위도'].values[0], coord['경도'].values[0]
+    lat, lon = gu_centroids[gu_name]
 
     badges = gu_badges.get(gu_name, [])
     badge_html = ''.join(
@@ -153,7 +167,7 @@ for gu_name in set(list(gu_badges.keys()) + list(overlap_any)):
     )
 
     folium.Marker(
-        [lat + 0.014, lon],   # 구 이름 라벨(중심)과 겹치지 않게 살짝 위로
+        [lat + 0.011, lon],
         icon=folium.DivIcon(icon_size=(150, 50), icon_anchor=(75, 25), html=box_html),
         tooltip=tooltip_text
     ).add_to(m)
