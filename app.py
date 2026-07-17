@@ -127,27 +127,56 @@ for gu in overlap_any:
 resource_colors = {'의사인원수': '#e6194B', '간호사인원수': '#3cb44b', '사회복지사인원수': '#f58231'}
 offsets = {'의사인원수': (0.003, 0), '간호사인원수': (-0.003, 0.003), '사회복지사인원수': (-0.003, -0.003)}
 
-for col, color in resource_colors.items():
-    off_lat, off_lon = offsets[col]
+import math
+
+# ---------------- 인력수 상위4(😊) / 하위4(😢) 이모지 마커 (겹침 방지) ----------------
+resource_colors = {'의사인원수': '#e6194B', '간호사인원수': '#3cb44b', '사회복지사인원수': '#f58231'}
+
+# 구별로 몇 번째 마커인지 세기 위한 카운터
+gu_marker_count = {}
+
+def get_spread_position(gu, base_lat, base_lon, radius=0.0035):
+    """같은 구에 마커가 여러 개면 중심 주위에 원형으로 퍼뜨림"""
+    idx = gu_marker_count.get(gu, 0)
+    gu_marker_count[gu] = idx + 1
+
+    if idx == 0:
+        return base_lat, base_lon  # 첫 마커는 중심에
+
+    # 두 번째부터는 각도를 나눠서 원 둘레에 배치
+    angle = (idx - 1) * (2 * math.pi / 6)  # 최대 6개 기준 균등 배치
+    lat = base_lat + radius * math.cos(angle)
+    lon = base_lon + radius * math.sin(angle) / math.cos(math.radians(base_lat))
+    return lat, lon
+
+# 처리 순서를 고정해서 같은 구는 항상 같은 위치에 마커가 오도록 함
+marker_order = []
+for col in resource_colors.keys():
     top4 = df_center_agg.sort_values(col, ascending=False).head(4)
     bot4 = df_center_agg.sort_values(col).head(4)
-    for df_rank, emoji in [(top4, '😊'), (bot4, '😢')]:
-        for _, row in df_rank.iterrows():
-            coord = gu_coord[gu_coord['시군구명'] == row['시군구명']]
-            if coord.empty:
-                continue
-            lat = coord['위도'].values[0] + off_lat
-            lon = coord['경도'].values[0] + off_lon
-            emoji_html = (
-                f'<div style="font-size:16px; text-align:center; line-height:22px;'
-                f'background-color:white; border:2px solid {color}; border-radius:50%;'
-                f'width:24px; height:24px;">{emoji}</div>'
-            )
-            folium.Marker(
-                [lat, lon],
-                icon=folium.DivIcon(icon_size=(26, 26), icon_anchor=(13, 13), html=emoji_html),
-                tooltip=f"{row['시군구명']} - {col} {emoji} ({row[col]}명)"
-            ).add_to(m)
+    for _, row in top4.iterrows():
+        marker_order.append((row['시군구명'], col, '😊'))
+    for _, row in bot4.iterrows():
+        marker_order.append((row['시군구명'], col, '😢'))
+
+for gu_name, col, emoji in marker_order:
+    coord = gu_coord[gu_coord['시군구명'] == gu_name]
+    if coord.empty:
+        continue
+    base_lat, base_lon = coord['위도'].values[0], coord['경도'].values[0]
+    lat, lon = get_spread_position(gu_name, base_lat, base_lon)
+    color = resource_colors[col]
+
+    emoji_html = (
+        f'<div style="font-size:14px; text-align:center; line-height:20px;'
+        f'background-color:white; border:2px solid {color}; border-radius:50%;'
+        f'width:22px; height:22px; box-shadow:0 0 2px rgba(0,0,0,0.6);">{emoji}</div>'
+    )
+    folium.Marker(
+        [lat, lon],
+        icon=folium.DivIcon(icon_size=(22, 22), icon_anchor=(11, 11), html=emoji_html),
+        tooltip=f"{gu_name} - {col} {emoji}"
+    ).add_to(m)
 
 st.subheader("🗺️ 자치구별 치매현황 지도 (자치구를 클릭하면 하단에 상세정보가 표시돼요)")
 map_data = st_folium(m, width=1100, height=650)
