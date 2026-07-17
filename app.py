@@ -308,46 +308,34 @@ with data_layout_right:
 st.markdown("---")
 st.subheader("📊 치매안심센터 인력 상위 4 / 하위 4 자치구")
 
-tab1, tab2, tab3 = st.tabs(["의사수", "간호사수", "사회복지사수"])
+# 총인원수 계산 → 총인원수 내림차순, 동률이면 의사수 내림차순으로 정렬
+df_rank = df_center_agg.copy()
+df_rank['총인원수'] = df_rank['의사인원수'] + df_rank['간호사인원수'] + df_rank['사회복지사인원수']
+df_rank_sorted = df_rank.sort_values(
+    by=['총인원수', '의사인원수'],
+    ascending=[False, False]
+).reset_index(drop=True)
 
-def show_rank_table(col_name):
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown(f"**🔼 {col_name} 상위 4개 구**")
-        top4_df = (
-            df_center_agg.sort_values(col_name, ascending=False)
-            .head(4)[['시군구명', col_name]]
-            .reset_index(drop=True)
-        )
-        top4_df.index = top4_df.index + 1
-        st.dataframe(top4_df, use_container_width=True)
-    with col2:
-        st.markdown(f"**🔽 {col_name} 하위 4개 구**")
-        bottom4_df = (
-            df_center_agg.sort_values(col_name)
-            .head(4)[['시군구명', col_name]]
-            .reset_index(drop=True)
-        )
-        bottom4_df.index = bottom4_df.index + 1
-        st.dataframe(bottom4_df, use_container_width=True)
+def build_rank_table(df_sub, start_rank):
+    out = df_sub[['시군구명', '총인원수', '의사인원수', '간호사인원수', '사회복지사인원수']].copy()
+    out.insert(0, '순위', range(start_rank, start_rank + len(out)))
+    return out.set_index('순위')
 
-with tab1:
-    show_rank_table('의사인원수')
-with tab2:
-    show_rank_table('간호사인원수')
-with tab3:
-    show_rank_table('사회복지사인원수')
+top4 = build_rank_table(df_rank_sorted.head(4), start_rank=1)
+bottom4 = build_rank_table(
+    df_rank_sorted.tail(4).sort_values(
+        by=['총인원수', '의사인원수'], ascending=[False, False]
+    ).reset_index(drop=True),
+    start_rank=len(df_rank_sorted) - 3
+)
 
-st.markdown("---")
-st.subheader("⚠️ 환자수 상위 4개 구 중 인력 부족 구")
-if overlap_any:
-    overlap_df = pd.DataFrame([
-        {'시군구': gu, '부족 인력': '·'.join(gu_reasons[gu])}
-        for gu in sorted(overlap_any)
-    ])
-    st.dataframe(overlap_df, use_container_width=True, hide_index=True)
-else:
-    st.info("해당하는 자치구가 없습니다.")
+rank_col1, rank_col2 = st.columns(2)
+with rank_col1:
+    st.markdown("**🔼 총인원수 상위 4개 구**")
+    st.dataframe(top4, use_container_width=True)
+with rank_col2:
+    st.markdown("**🔽 총인원수 하위 4개 구**")
+    st.dataframe(bottom4, use_container_width=True)
 
 st.markdown("---")
 st.subheader("👨‍⚕️ 의사 1인당 추정치매환자수 TOP 5 자치구")
@@ -357,15 +345,38 @@ df_ratio = df_center_agg.merge(
     left_on='시군구명', right_on='시군구'
 )
 df_ratio = df_ratio[df_ratio['의사인원수'] > 0].copy()
-df_ratio['의사1인당_환자수'] = (df_ratio['추정치매환자수'] / df_ratio['의사인원수']).round(1)
+df_ratio['의사1인당_환자수'] = (df_ratio['추정치매환자수'] / df_ratio['의사인원수']).round(0).astype(int)
 
 top5_ratio = (
     df_ratio.sort_values('의사1인당_환자수', ascending=False)
-    .head(5)[['시군구명', '의사인원수', '추정치매환자수', '의사1인당_환자수']]
+    .head(5)[['시군구명', '의사1인당_환자수']]
     .reset_index(drop=True)
 )
-top5_ratio.index = top5_ratio.index + 1
-st.dataframe(top5_ratio, use_container_width=True)
+
+import plotly.express as px
+
+fig = px.bar(
+    top5_ratio.sort_values('의사1인당_환자수'),  # 가로 막대는 아래에서 위로 그려지므로 오름차순 정렬
+    x='의사1인당_환자수',
+    y='시군구명',
+    orientation='h',
+    text='의사1인당_환자수',
+    color='의사1인당_환자수',
+    color_continuous_scale='Purples'
+)
+fig.update_traces(
+    texttemplate='%{text:.0f}명',
+    textposition='outside',
+    textfont=dict(size=14)
+)
+fig.update_layout(
+    xaxis_title='의사 1인당 추정치매환자수 (명)',
+    yaxis_title=None,
+    coloraxis_showscale=False,
+    height=350,
+    margin=dict(t=20, l=10, r=30, b=10)
+)
+st.plotly_chart(fig, use_container_width=True)
 
 zero_doctor_gu = df_center_agg[df_center_agg['의사인원수'] == 0]['시군구명'].tolist()
 if zero_doctor_gu:
