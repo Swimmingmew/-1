@@ -59,10 +59,11 @@ colormap = cm.LinearColormap(colors=['#e0f7f5', '#00b4d8', '#1a3636'], vmin=vmin
 colormap.caption = '추정치매환자수 밀도'
 
 # ---------------- 클릭/선택 상태 계산 (지도가 다시 그려져도 값 유지) ----------------
-prev_map_state = st.session_state.get("seoul_map")
 clicked_gu = None
-if prev_map_state and prev_map_state.get('last_object_clicked_tooltip'):
-    clicked_gu = prev_map_state['last_object_clicked_tooltip'].strip()
+for k, v in st.session_state.items():
+    if k.startswith("seoul_map_") and isinstance(v, dict) and v.get('last_object_clicked_tooltip'):
+        clicked_gu = v['last_object_clicked_tooltip'].strip()
+        break
 
 if clicked_gu:
     st.session_state['persisted_clicked_gu'] = clicked_gu
@@ -237,14 +238,16 @@ left_ratio = 100 - panel_width
 map_layout_left, data_layout_right = st.columns([left_ratio, panel_width])
 
 with map_layout_left:
-    # 전체 화면을 대략 1300px로 가정하고, 슬라이더 비율만큼 지도 폭을 고정 계산
-    estimated_total_width = 1300
-    map_width_px = int(estimated_total_width * left_ratio / 100)
-
     map_container = st.container(height=660)
     with map_container:
-        map_data = st_folium(m, key="seoul_map", width=map_width_px, height=650)
-        
+        map_data = st_folium(
+            m,
+            key=f"seoul_map_{final_gu or 'default'}",
+            width=None,
+            height=650,
+            use_container_width=True
+        )
+
 with data_layout_right:
     if final_gu:
         st.markdown(f"### 📍 **{final_gu}** 2025 치매환자 지원 인프라 지표")
@@ -324,14 +327,12 @@ def build_rank_table(df_sub, start_rank):
     out.insert(0, '순위', range(start_rank, start_rank + len(out)))
     return out.set_index('순위')
 
-# 상위 4개: 총인원수 → 의사수 → 간호사수 → 사회복지사수 모두 많은 순
 top4_sorted = df_rank.sort_values(
     by=['총인원수', '의사인원수', '간호사인원수', '사회복지사인원수'],
     ascending=[False, False, False, False]
 ).reset_index(drop=True)
 top4 = build_rank_table(top4_sorted.head(4), start_rank=1)
 
-# 하위 4개: 총인원수 → 의사수 → 간호사수 → 사회복지사수 모두 적은 순
 bottom4_sorted = df_rank.sort_values(
     by=['총인원수', '의사인원수', '간호사인원수', '사회복지사인원수'],
     ascending=[True, True, True, True]
@@ -351,6 +352,49 @@ with rank_col2:
 
 if '성북구' in top4['시군구명'].values or '성북구' in bottom4['시군구명'].values:
     st.caption("※ 성북구는 본소·분소 인력 수치가 원본 데이터상 동일하게 등록되어 있어, 중복 입력 여부가 의심됩니다. 순위는 원본 합산값 기준입니다.")
+
+st.markdown("---")
+st.subheader("👨‍⚕️ 의사 1인당 추정치매환자수 TOP 5 자치구")
+
+df_ratio = df_center_agg.merge(
+    df_use_total[['시군구', '추정치매환자수']],
+    left_on='시군구명', right_on='시군구'
+)
+df_ratio = df_ratio[df_ratio['의사인원수'] > 0].copy()
+df_ratio['의사1인당_환자수'] = (df_ratio['추정치매환자수'] / df_ratio['의사인원수']).round(0).astype(int)
+
+top5_ratio = (
+    df_ratio.sort_values('의사1인당_환자수', ascending=False)
+    .head(5)[['시군구명', '의사1인당_환자수']]
+    .reset_index(drop=True)
+)
+
+fig = px.bar(
+    top5_ratio.sort_values('의사1인당_환자수'),
+    x='의사1인당_환자수',
+    y='시군구명',
+    orientation='h',
+    text='의사1인당_환자수',
+    color='의사1인당_환자수',
+    color_continuous_scale='Purples'
+)
+fig.update_traces(
+    texttemplate='%{text:.0f}명',
+    textposition='outside',
+    textfont=dict(size=14)
+)
+fig.update_layout(
+    xaxis_title='의사 1인당 추정치매환자수 (명)',
+    yaxis_title=None,
+    coloraxis_showscale=False,
+    height=350,
+    margin=dict(t=20, l=10, r=30, b=10)
+)
+st.plotly_chart(fig, use_container_width=True)
+
+zero_doctor_gu = df_center_agg[df_center_agg['의사인원수'] == 0]['시군구명'].tolist()
+if zero_doctor_gu:
+    st.caption(f"⚠️ 의사 0명인 자치구({', '.join(zero_doctor_gu)})는 비율 계산에서 제외했습니다.")
 
 st.markdown("---")
 st.subheader("🏆 인력별 최다 배치 자치구")
