@@ -55,7 +55,7 @@ selected_gu_sidebar = st.sidebar.selectbox("자치구 선택", gu_options)
 
 patient_dict = df_use_total.set_index('시군구')['추정치매환자수'].to_dict()
 vmin, vmax = min(patient_dict.values()), max(patient_dict.values())
-colormap = cm.LinearColormap(colors=['#1a3636', '#00b4d8', '#00f5d4'], vmin=vmin, vmax=vmax)
+colormap = cm.LinearColormap(colors=['#e0f7f5', '#00b4d8', '#1a3636'], vmin=vmin, vmax=vmax)
 colormap.caption = '추정치매환자수 밀도'
 
 # ---------------- 클릭/선택 상태 계산 (지도가 다시 그려져도 값 유지) ----------------
