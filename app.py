@@ -346,6 +346,9 @@ with rank_col2:
     st.markdown("**🔽 총인원수 하위 4개 구**")
     st.dataframe(bottom4, use_container_width=True)
 
+if '성북구' in top4['시군구명'].values or '성북구' in bottom4['시군구명'].values:
+    st.caption("※ 성북구는 본소·분소 인력 수치가 원본 데이터상 동일하게 등록되어 있어, 중복 입력 여부가 의심됩니다. 순위는 원본 합산값 기준입니다.")
+
 st.markdown("---")
 st.subheader("👨‍⚕️ 의사 1인당 추정치매환자수 TOP 5 자치구")
 
