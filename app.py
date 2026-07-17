@@ -274,13 +274,6 @@ with data_layout_right:
             })
             st.dataframe(summary_table, use_container_width=True, hide_index=True)
 
-            st.write("")
-            st.caption(f"🏢 관내 등록 치매안심센터 세부 인력 ({len(centers)}개, 지도에 📍로 표시됨)")
-            display_df = (
-                centers.set_index('치매센터명')[['의사인원수', '간호사인원수', '사회복지사인원수']]
-                .T
-            )
-            st.dataframe(display_df, use_container_width=True)
         else:
             st.info("이 구에는 등록된 치매안심센터 정보가 없어요.")
 
@@ -338,49 +331,6 @@ with rank_col2:
 
 if '성북구' in top4['시군구명'].values or '성북구' in bottom4['시군구명'].values:
     st.caption("※ 성북구는 본소·분소 인력 수치가 원본 데이터상 동일하게 등록되어 있어, 중복 입력 여부가 의심됩니다. 순위는 원본 합산값 기준입니다.")
-
-st.markdown("---")
-st.subheader("👨‍⚕️ 의사 1인당 추정치매환자수 TOP 5 자치구")
-
-df_ratio = df_center_agg.merge(
-    df_use_total[['시군구', '추정치매환자수']],
-    left_on='시군구명', right_on='시군구'
-)
-df_ratio = df_ratio[df_ratio['의사인원수'] > 0].copy()
-df_ratio['의사1인당_환자수'] = (df_ratio['추정치매환자수'] / df_ratio['의사인원수']).round(0).astype(int)
-
-top5_ratio = (
-    df_ratio.sort_values('의사1인당_환자수', ascending=False)
-    .head(5)[['시군구명', '의사1인당_환자수']]
-    .reset_index(drop=True)
-)
-
-fig = px.bar(
-    top5_ratio.sort_values('의사1인당_환자수'),
-    x='의사1인당_환자수',
-    y='시군구명',
-    orientation='h',
-    text='의사1인당_환자수',
-    color='의사1인당_환자수',
-    color_continuous_scale='Purples'
-)
-fig.update_traces(
-    texttemplate='%{text:.0f}명',
-    textposition='outside',
-    textfont=dict(size=14)
-)
-fig.update_layout(
-    xaxis_title='의사 1인당 추정치매환자수 (명)',
-    yaxis_title=None,
-    coloraxis_showscale=False,
-    height=350,
-    margin=dict(t=20, l=10, r=30, b=10)
-)
-st.plotly_chart(fig, use_container_width=True)
-
-zero_doctor_gu = df_center_agg[df_center_agg['의사인원수'] == 0]['시군구명'].tolist()
-if zero_doctor_gu:
-    st.caption(f"⚠️ 의사 0명인 자치구({', '.join(zero_doctor_gu)})는 비율 계산에서 제외했습니다.")
 
 st.markdown("---")
 st.subheader("🏆 인력별 최다 배치 자치구")
