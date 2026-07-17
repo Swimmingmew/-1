@@ -126,7 +126,9 @@ folium.GeoJson(
         'color': '#ff4d4d',       
         'weight': 3, 
         'dashArray': '4, 4'
-    }
+    },
+    tooltip=folium.GeoJsonTooltip(fields=['name'], aliases=[''], labels=False, sticky=True),
+    highlight_function=lambda x: {'weight': 3, 'fillOpacity': 0.3}
 ).add_to(m)
 
 # 인력 부족 뱃지 추가
