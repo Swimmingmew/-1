@@ -237,10 +237,14 @@ left_ratio = 100 - panel_width
 map_layout_left, data_layout_right = st.columns([left_ratio, panel_width])
 
 with map_layout_left:
+    # 전체 화면을 대략 1300px로 가정하고, 슬라이더 비율만큼 지도 폭을 고정 계산
+    estimated_total_width = 1300
+    map_width_px = int(estimated_total_width * left_ratio / 100)
+
     map_container = st.container(height=660)
     with map_container:
-        map_data = st_folium(m, key="seoul_map", width=None, height=650, use_container_width=True)
-
+        map_data = st_folium(m, key="seoul_map", width=map_width_px, height=650)
+        
 with data_layout_right:
     if final_gu:
         st.markdown(f"### 📍 **{final_gu}** 2025 치매환자 지원 인프라 지표")
