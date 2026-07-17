@@ -120,7 +120,7 @@ for gu in overlap_any:
         f'⚠ {gu}<br>{reason_text}</div>'
     )
     folium.Marker(
-        [lat + 0.008, lon],
+        [lat + 0.022, lon],
         icon=folium.DivIcon(icon_size=(130, 32), icon_anchor=(65, 32), html=warn_html)
     ).add_to(m)
 
