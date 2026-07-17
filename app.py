@@ -277,16 +277,12 @@ with data_layout_right:
             max_nurse = df_center_agg['간호사인원수'].max()
             max_social = df_center_agg['사회복지사인원수'].max()
 
-            doc_pct = min(float(total_doc / max_doc), 1.0) if max_doc else 0.0
-            nurse_pct = min(float(total_nurse / max_nurse), 1.0) if max_nurse else 0.0
-            social_pct = min(float(total_social / max_social), 1.0) if max_social else 0.0
-
-            st.write(f"의사 수: {total_doc}명")
-            st.progress(doc_pct)
-            st.write(f"간호사 수: {total_nurse}명")
-            st.progress(nurse_pct)
-            st.write(f"사회복지사 수: {total_social}명")
-            st.progress(social_pct)
+summary_table = pd.DataFrame({
+                '의사수': [total_doc],
+                '간호사수': [total_nurse],
+                '사회복지사수': [total_social]
+            })
+            st.dataframe(summary_table, use_container_width=True, hide_index=True)
 
             st.write("")
             st.caption(f"🏢 관내 등록 치매안심센터 세부 인력 ({len(centers)}개, 지도에 📍로 표시됨)")
