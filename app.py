@@ -111,7 +111,7 @@ for feature in seoul_geo['features']:
     centroid = shape(feature['geometry']).centroid
     gu_centroids[gu_name] = (centroid.y, centroid.x)
 
-label_html = (
+    label_html = (
         '<div style="font-size:11px; font-weight:700; color:#222222; text-align:center;'
         'text-shadow: 1px 1px 2px #fff, -1px -1px 2px #fff, 1px -1px 2px #fff, -1px 1px 2px #fff;">'
         + gu_name + '</div>'
