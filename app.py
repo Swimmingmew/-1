@@ -160,7 +160,7 @@ for gu_name in overlap_any:
 legend_col1, legend_col2 = st.columns([2, 1])
 
 with legend_col1:
-    st.subheader("🗺️ 서울시 자치구별 치매 안심 지형도")
+    st.subheader("💪자치구별 치매환자 지원인력 현황")
 with legend_col2:
     # 예쁜 가로형 인포그래픽 범례 컴포넌트 생성
     st.markdown(
