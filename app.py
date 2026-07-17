@@ -63,12 +63,13 @@ colormap = cm.LinearColormap(colors=['#1a3636', '#00b4d8', '#00f5d4'], vmin=vmin
 colormap.caption = '추정치매환자수 밀도'
 
 # 지도 초기화 (Dark Matter 그래픽 모드)
+# ---------------- 지도 초기화 (흰 배경, 서울 자치구만 표시) ----------------
 m = folium.Map(
     location=[37.5665, 126.9780],
     zoom_start=11,
     min_zoom=11,
     max_zoom=11,
-    tiles='CartoDB dark_matter',
+    tiles=None,          # ← 기본 지도 타일(도로/지명 등) 없이 빈 캔버스
     zoom_control=False,
     scrollWheelZoom=False,
     dragging=False,
@@ -77,6 +78,11 @@ m = folium.Map(
     keyboard=False
 )
 
+# 배경을 확실히 흰색으로 고정
+m.get_root().html.add_child(folium.Element(
+    "<style>.leaflet-container{background:#ffffff !important;}</style>"
+))
+
 # 폴리곤 스타일 및 바인딩
 def style_function(feature):
     gu = feature['properties']['name']
@@ -84,19 +90,19 @@ def style_function(feature):
     is_selected = (gu == selected_gu_sidebar)
     return {
         'fillColor': colormap(val),
-        'color': '#ffffff' if is_selected else '#444444',
+        'color': '#7b1fa2' if is_selected else '#999999',
         'weight': 3 if is_selected else 1,
-        'fillOpacity': 0.75 if is_selected else 0.55,
+        'fillOpacity': 0.9 if is_selected else 0.85,
     }
 
 geo_layer = folium.GeoJson(
     seoul_geo,
     style_function=style_function,
-    highlight_function=lambda x: {'weight': 3, 'color': '#ffffff', 'fillOpacity': 0.8},
+    highlight_function=lambda x: {'weight': 3, 'color': '#7b1fa2', 'fillOpacity': 0.95},
     tooltip=folium.GeoJsonTooltip(fields=['name'], aliases=[''], labels=False, sticky=True),
 )
 geo_layer.add_to(m)
-colormap.add_to(m)
+# colormap.add_to(m)  ← 삭제: 기본 범례(오른쪽 위) 표시 안 함
 
 # 자치구명 라벨 추가
 gu_centroids = {}
