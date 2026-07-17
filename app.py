@@ -391,7 +391,7 @@ zero_doctor_gu = df_center_agg[df_center_agg['의사인원수'] == 0]['시군구
 if zero_doctor_gu:
     st.caption(f"⚠️ 의사 0명인 자치구({', '.join(zero_doctor_gu)})는 비율 계산에서 제외했습니다.")
 
- st.markdown("---")
+st.markdown("---")
 st.subheader("🏆 인력별 최다 배치 자치구")
 
 top1_doc = df_center_agg.sort_values('의사인원수', ascending=False).iloc[0]
