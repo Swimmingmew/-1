@@ -290,8 +290,11 @@ with data_layout_right:
         else:
             st.info("이 구에는 등록된 치매안심센터 정보가 없어요.")
 
-        if final_gu in overlap_any:
+if final_gu in overlap_any:
             st.error(f"⚠️ **{final_gu}**는 치매 환자수에 비해 **{'·'.join(gu_reasons[final_gu])}** 인력이 현저히 부족합니다.")
+
+        if final_gu == '성북구':
+            st.warning("ℹ️ 성북구는 본소·분소의 인력 수치가 원본 데이터상 동일하게 등록되어 있어, 중복 입력 여부를 확인해야 합니다. 위 합계는 원본 데이터를 그대로 합산한 값입니다.")
 
     else:
         st.markdown(
