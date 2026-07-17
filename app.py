@@ -219,7 +219,7 @@ with legend_col2:
         """
         <div style="display: flex; gap: 15px; justify-content: flex-end; align-items: center; padding-top: 10px;">
             <div style="display: flex; align-items: center; gap: 6px;">
-                <span style="display: inline-block; width: 14px; height: 14px; background: linear-gradient(90deg, #1a3636, #00f5d4); border-radius: 3px;"></span>
+                <span style="display: inline-block; width: 14px; height: 14px; background: linear-gradient(90deg, #e0f7f5, #1a3636); border-radius: 3px;"></span>
                 <span style="font-size: 12px; font-weight: 500; color: #bbb;">치매환자수 밀도</span>
             </div>
             <div style="display: flex; align-items: center; gap: 6px;">
