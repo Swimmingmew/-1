@@ -308,26 +308,32 @@ with data_layout_right:
 st.markdown("---")
 st.subheader("📊 치매안심센터 인력 상위 4 / 하위 4 자치구")
 
-# 총인원수 계산 → 총인원수 내림차순, 동률이면 의사수 내림차순으로 정렬
 df_rank = df_center_agg.copy()
 df_rank['총인원수'] = df_rank['의사인원수'] + df_rank['간호사인원수'] + df_rank['사회복지사인원수']
-df_rank_sorted = df_rank.sort_values(
-    by=['총인원수', '의사인원수'],
-    ascending=[False, False]
-).reset_index(drop=True)
 
 def build_rank_table(df_sub, start_rank):
     out = df_sub[['시군구명', '총인원수', '의사인원수', '간호사인원수', '사회복지사인원수']].copy()
     out.insert(0, '순위', range(start_rank, start_rank + len(out)))
     return out.set_index('순위')
 
-top4 = build_rank_table(df_rank_sorted.head(4), start_rank=1)
-bottom4 = build_rank_table(
-    df_rank_sorted.tail(4).sort_values(
-        by=['총인원수', '의사인원수'], ascending=[False, False]
-    ).reset_index(drop=True),
-    start_rank=len(df_rank_sorted) - 3
-)
+# 상위 4개: 총인원수 → 의사수 → 간호사수 → 사회복지사수 모두 많은 순
+top4_sorted = df_rank.sort_values(
+    by=['총인원수', '의사인원수', '간호사인원수', '사회복지사인원수'],
+    ascending=[False, False, False, False]
+).reset_index(drop=True)
+top4 = build_rank_table(top4_sorted.head(4), start_rank=1)
+
+# 하위 4개: 총인원수 → 의사수 → 간호사수 → 사회복지사수 모두 적은 순
+bottom4_sorted = df_rank.sort_values(
+    by=['총인원수', '의사인원수', '간호사인원수', '사회복지사인원수'],
+    ascending=[True, True, True, True]
+).reset_index(drop=True)
+bottom4_raw = bottom4_sorted.head(4)
+
+# 순위 번호는 "적은 순" 기준 뒤에서부터(전체 구 수 - 3위 ~ 전체 구 수)로 매기되,
+# 표 안에서는 적은 순서 그대로(1등이 가장 적음) 보여줌
+n_total = len(df_rank)
+bottom4 = build_rank_table(bottom4_raw, start_rank=n_total - 3)
 
 rank_col1, rank_col2 = st.columns(2)
 with rank_col1:
