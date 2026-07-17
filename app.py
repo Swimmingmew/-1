@@ -40,7 +40,7 @@ for gu in top4_patients_gu:
         gu_reasons[gu] = reasons
 
 # --- 상단 헤더 및 전체 요약 지표 ---
-st.title("🧠 서울시 치매안심센터 현황 대시보드")
+st.title("🧠 서울시 치매환자 지원현황 대시보드")
 
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("총 추정치매환자수", f"{df_use_total['추정치매환자수'].sum():,.0f}명")
