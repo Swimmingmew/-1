@@ -107,27 +107,9 @@ folium.GeoJson(
     style_function=lambda x: {'fillColor': 'transparent', 'color': 'black', 'weight': 4, 'dashArray': '5,5'}
 ).add_to(m)
 
-for gu in overlap_any:
-    coord = gu_coord[gu_coord['시군구명'] == gu]
-    if coord.empty:
-        continue
-    lat, lon = coord['위도'].values[0], coord['경도'].values[0]
-    reason_text = '·'.join(gu_reasons[gu]) + ' 부족'
-    warn_html = (
-        '<div style="background-color:black;color:white;padding:2px 5px;border-radius:4px;'
-        'font-size:10px;font-weight:bold;white-space:nowrap;text-align:center;'
-        'box-shadow:0 0 3px rgba(0,0,0,0.5);">'
-        f'⚠ {gu}<br>{reason_text}</div>'
-    )
-    folium.Marker(
-        [lat + 0.022, lon],
-        icon=folium.DivIcon(icon_size=(130, 32), icon_anchor=(65, 32), html=warn_html)
-    ).add_to(m)
-
-# ---------------- 구별 배지 통합 (겹침 원천 차단) ----------------
+# ---------------- 구별 배지(이모지) + 경고 라벨 통합 표시 ----------------
 resource_colors = {'의사인원수': '#e6194B', '간호사인원수': '#3cb44b', '사회복지사인원수': '#f58231'}
 
-# 구별로 표시할 배지(이모지) 목록 모으기
 gu_badges = {}  # {구명: [(emoji, color, tooltip_text), ...]}
 
 for col, color in resource_colors.items():
@@ -138,24 +120,21 @@ for col, color in resource_colors.items():
     for _, row in bot4.iterrows():
         gu_badges.setdefault(row['시군구명'], []).append(('😢', color, f"{col} 하위4"))
 
-# 구별로 배지 + 경고 라벨을 하나의 마커(HTML 박스)로 합쳐서 표시
 for gu_name in set(list(gu_badges.keys()) + list(overlap_any)):
     coord = gu_coord[gu_coord['시군구명'] == gu_name]
     if coord.empty:
         continue
     lat, lon = coord['위도'].values[0], coord['경도'].values[0]
 
-    # 배지 아이콘들을 가로로 나열
     badges = gu_badges.get(gu_name, [])
     badge_html = ''.join(
         f'<span style="display:inline-block; width:16px; height:16px; line-height:14px; '
-        f'font-size:11px; text-align:center; background:white; border:1.5px solid {color}; '
+        f'font-size:11px; text-align:center; background:white; border:1.5px solid {badge_color}; '
         f'border-radius:50%; margin:1px;">{emoji}</span>'
-        for emoji, color, _ in badges
+        for emoji, badge_color, _ in badges
     )
     tooltip_text = f"{gu_name}: " + ', '.join(t for _, _, t in badges)
 
-    # 경고 문구(있으면 추가)
     warn_line = ''
     if gu_name in overlap_any:
         reason_text = '·'.join(gu_reasons[gu_name]) + ' 부족'
@@ -167,16 +146,15 @@ for gu_name in set(list(gu_badges.keys()) + list(overlap_any)):
         tooltip_text += f" | 환자수 많음+{reason_text}"
 
     box_html = (
-        '<div style="display:flex; flex-direction:column; align-items:center; '
-        'transform:translateY(-100%);">'  # 박스 전체를 좌표 위쪽으로 띄움
+        '<div style="display:flex; flex-direction:column; align-items:center;">'
         f'<div style="white-space:nowrap;">{badge_html}</div>'
         f'{warn_line}'
         '</div>'
     )
 
     folium.Marker(
-        [lat, lon],
-        icon=folium.DivIcon(icon_size=(150, 50), icon_anchor=(75, 50), html=box_html),
+        [lat + 0.014, lon],   # 구 이름 라벨(중심)과 겹치지 않게 살짝 위로
+        icon=folium.DivIcon(icon_size=(150, 50), icon_anchor=(75, 25), html=box_html),
         tooltip=tooltip_text
     ).add_to(m)
 
