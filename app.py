@@ -111,9 +111,9 @@ for feature in seoul_geo['features']:
     centroid = shape(feature['geometry']).centroid
     gu_centroids[gu_name] = (centroid.y, centroid.x)
 
-    label_html = (
-        '<div style="font-size:11px; font-weight:700; color:#ffffff; text-align:center;'
-        'text-shadow: 0 0 4px #000, 0 0 4px #000;">'
+label_html = (
+        '<div style="font-size:11px; font-weight:700; color:#222222; text-align:center;'
+        'text-shadow: 1px 1px 2px #fff, -1px -1px 2px #fff, 1px -1px 2px #fff, -1px 1px 2px #fff;">'
         + gu_name + '</div>'
     )
     folium.Marker(
@@ -181,6 +181,22 @@ with legend_col2:
 
 # ---------------- [추가 구현 2] 2분할 레이아웃 적용 (왼쪽: 지도, 오른쪽: 클릭 시 실시간 수치 시각화) ----------------
 map_layout_left, data_layout_right = st.columns([7, 4])
+
+# ---------------- 왼쪽 하단 범례 (추정치매환자수 밀도) ----------------
+legend_html_bottomleft = f'''
+<div style="position: fixed; bottom: 40px; left: 40px; z-index:9999;
+            background-color:white; padding:10px 14px; border:1px solid #ddd; border-radius:8px;
+            box-shadow:0 2px 6px rgba(0,0,0,0.15); font-size:12px;">
+    <div style="font-weight:bold; margin-bottom:6px;">추정치매환자수 밀도</div>
+    <div style="width:160px; height:12px; border-radius:4px;
+                background: linear-gradient(90deg, {colormap.colors[0]}, {colormap.colors[len(colormap.colors)//2]}, {colormap.colors[-1]});">
+    </div>
+    <div style="display:flex; justify-content:space-between; margin-top:3px; color:#666;">
+        <span>{vmin:,.0f}</span><span>{vmax:,.0f}</span>
+    </div>
+</div>
+'''
+m.get_root().html.add_child(folium.Element(legend_html_bottomleft))
 
 with map_layout_left:
     # 인터랙티브 지도 렌더링
