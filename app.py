@@ -180,14 +180,7 @@ with legend_col2:
     )
 
 # ---------------- [추가 구현 2] 2분할 레이아웃 적용 (왼쪽: 지도, 오른쪽: 클릭 시 실시간 수치 시각화) ----------------
-panel_width = st.slider(
-    "오른쪽 상세정보 패널 너비 조절",
-    min_value=20, max_value=60, value=35, step=5,
-    format="%d%%"
-)
-right_ratio = panel_width
-left_ratio = 100 - panel_width
-map_layout_left, data_layout_right = st.columns([left_ratio, right_ratio])
+map_layout_left, data_layout_right = st.columns([7, 4])
 
 # ---------------- 왼쪽 하단 범례 (추정치매환자수 밀도) ----------------
 # ---------------- 왼쪽 하단 범례 (구간별 색상 박스) ----------------
