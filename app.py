@@ -390,3 +390,48 @@ st.plotly_chart(fig, use_container_width=True)
 zero_doctor_gu = df_center_agg[df_center_agg['의사인원수'] == 0]['시군구명'].tolist()
 if zero_doctor_gu:
     st.caption(f"⚠️ 의사 0명인 자치구({', '.join(zero_doctor_gu)})는 비율 계산에서 제외했습니다.")
+
+ st.markdown("---")
+st.subheader("🏆 인력별 최다 배치 자치구")
+
+top1_doc = df_center_agg.sort_values('의사인원수', ascending=False).iloc[0]
+top1_nurse = df_center_agg.sort_values('간호사인원수', ascending=False).iloc[0]
+top1_social = df_center_agg.sort_values('사회복지사인원수', ascending=False).iloc[0]
+
+col_doc, col_nurse, col_social = st.columns(3)
+
+with col_doc:
+    st.markdown(
+        f"""
+        <div style="background-color:#f3e5f5; padding:18px; border-radius:10px; text-align:center;">
+            <p style="margin:0; font-size:13px; color:#7b1fa2;">👨‍⚕️ 의사 최다 배치</p>
+            <h2 style="margin:8px 0 0 0; color:#4a148c;">{top1_doc['시군구명']}</h2>
+            <p style="margin:5px 0 0 0; font-size:14px; color:#555;">의사 {top1_doc['의사인원수']:,.0f}명</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col_nurse:
+    st.markdown(
+        f"""
+        <div style="background-color:#e8f5e9; padding:18px; border-radius:10px; text-align:center;">
+            <p style="margin:0; font-size:13px; color:#2e7d32;">👩‍⚕️ 간호사 최다 배치</p>
+            <h2 style="margin:8px 0 0 0; color:#1b5e20;">{top1_nurse['시군구명']}</h2>
+            <p style="margin:5px 0 0 0; font-size:14px; color:#555;">간호사 {top1_nurse['간호사인원수']:,.0f}명</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col_social:
+    st.markdown(
+        f"""
+        <div style="background-color:#fff3e0; padding:18px; border-radius:10px; text-align:center;">
+            <p style="margin:0; font-size:13px; color:#e65100;">🧑‍🤝‍🧑 사회복지사 최다 배치</p>
+            <h2 style="margin:8px 0 0 0; color:#bf360c;">{top1_social['시군구명']}</h2>
+            <p style="margin:5px 0 0 0; font-size:14px; color:#555;">사회복지사 {top1_social['사회복지사인원수']:,.0f}명</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
