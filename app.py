@@ -168,7 +168,7 @@ with legend_col2:
             </div>
         </div>
         """,
-        unsafe_allowed_value=True
+        unsafe_allow_html=True
     )
 
 # ---------------- [추가 구현 2] 2분할 레이아웃 적용 (왼쪽: 지도, 오른쪽: 클릭 시 실시간 수치 시각화) ----------------
@@ -206,7 +206,7 @@ with data_layout_right:
                     <p style="margin: 5px 0 0 0; font-size: 12px; color: #ccc;">전체 노인 인구 {r['노인인구수']:,.0f}명 중 약 <b>{r['추정치매환자유병률']}%</b> 유병률</p>
                 </div>
                 """,
-                unsafe_allowed_value=True
+                unsafe_allow_html=True
             )
 
         # 2. 인력 데이터 로드 및 프로그레스 바 형태의 시각화
@@ -258,7 +258,7 @@ with data_layout_right:
                 <p style="font-size: 13px; color: #777; margin: 5px 0 0 0;">지도에서 보고 싶은 자치구를 클릭하면 실시간 상세 정보 시각화 그래프가 이 영역에 나타납니다.</p>
             </div>
             """,
-            unsafe_allowed_value=True
+            unsafe_allow_html=True
         )
 
 # --- [여기 아래부터는 기존 하단 데이터 테이블 영역이 그대로 배치됩니다] ---
