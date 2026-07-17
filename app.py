@@ -66,10 +66,7 @@ colormap.caption = '추정치매환자수 밀도'
 # ---------------- 지도 초기화 (흰 배경, 서울 자치구만 표시) ----------------
 m = folium.Map(
     location=[37.5665, 126.9780],
-    zoom_start=11,
-    min_zoom=11,
-    max_zoom=11,
-    tiles=None,          # ← 기본 지도 타일(도로/지명 등) 없이 빈 캔버스
+    tiles=None,
     zoom_control=False,
     scrollWheelZoom=False,
     dragging=False,
