@@ -396,43 +396,51 @@ with col_social:
 st.markdown("---")
 st.subheader("🔻 인력별 최소 배치 자치구")
 
-bottom1_doc = df_center_agg.sort_values('의사인원수', ascending=True).iloc[0]
-bottom1_nurse = df_center_agg.sort_values('간호사인원수', ascending=True).iloc[0]
-bottom1_social = df_center_agg.sort_values('사회복지사인원수', ascending=True).iloc[0]
+def get_min_gu_list(col_name):
+    min_val = df_center_agg[col_name].min()
+    gu_list = df_center_agg[df_center_agg[col_name] == min_val]['시군구명'].tolist()
+    return min_val, gu_list
+
+min_doc_val, min_doc_gu = get_min_gu_list('의사인원수')
+min_nurse_val, min_nurse_gu = get_min_gu_list('간호사인원수')
+min_social_val, min_social_gu = get_min_gu_list('사회복지사인원수')
 
 col_doc2, col_nurse2, col_social2 = st.columns(3)
 
 with col_doc2:
+    gu_text = ', '.join(min_doc_gu)
     st.markdown(
         f"""
         <div style="background-color:#f3e5f5; padding:18px; border-radius:10px; text-align:center; border:2px dashed #9c27b0;">
-            <p style="margin:0; font-size:13px; color:#7b1fa2;">👨‍⚕️ 의사 최소 배치</p>
-            <h2 style="margin:8px 0 0 0; color:#4a148c;">{bottom1_doc['시군구명']}</h2>
-            <p style="margin:5px 0 0 0; font-size:14px; color:#555;">의사 {bottom1_doc['의사인원수']:,.0f}명</p>
+            <p style="margin:0; font-size:13px; color:#7b1fa2;">👨‍⚕️ 의사 최소 배치 ({len(min_doc_gu)}개 구)</p>
+            <h3 style="margin:8px 0 0 0; color:#4a148c;">{gu_text}</h3>
+            <p style="margin:5px 0 0 0; font-size:14px; color:#555;">의사 {min_doc_val:,.0f}명</p>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 with col_nurse2:
+    gu_text = ', '.join(min_nurse_gu)
     st.markdown(
         f"""
         <div style="background-color:#e8f5e9; padding:18px; border-radius:10px; text-align:center; border:2px dashed #4caf50;">
-            <p style="margin:0; font-size:13px; color:#2e7d32;">👩‍⚕️ 간호사 최소 배치</p>
-            <h2 style="margin:8px 0 0 0; color:#1b5e20;">{bottom1_nurse['시군구명']}</h2>
-            <p style="margin:5px 0 0 0; font-size:14px; color:#555;">간호사 {bottom1_nurse['간호사인원수']:,.0f}명</p>
+            <p style="margin:0; font-size:13px; color:#2e7d32;">👩‍⚕️ 간호사 최소 배치 ({len(min_nurse_gu)}개 구)</p>
+            <h3 style="margin:8px 0 0 0; color:#1b5e20;">{gu_text}</h3>
+            <p style="margin:5px 0 0 0; font-size:14px; color:#555;">간호사 {min_nurse_val:,.0f}명</p>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 with col_social2:
+    gu_text = ', '.join(min_social_gu)
     st.markdown(
         f"""
         <div style="background-color:#fff3e0; padding:18px; border-radius:10px; text-align:center; border:2px dashed #ff9800;">
-            <p style="margin:0; font-size:13px; color:#e65100;">🧑‍🤝‍🧑 사회복지사 최소 배치</p>
-            <h2 style="margin:8px 0 0 0; color:#bf360c;">{bottom1_social['시군구명']}</h2>
-            <p style="margin:5px 0 0 0; font-size:14px; color:#555;">사회복지사 {bottom1_social['사회복지사인원수']:,.0f}명</p>
+            <p style="margin:0; font-size:13px; color:#e65100;">🧑‍🤝‍🧑 사회복지사 최소 배치 ({len(min_social_gu)}개 구)</p>
+            <h3 style="margin:8px 0 0 0; color:#bf360c;">{gu_text}</h3>
+            <p style="margin:5px 0 0 0; font-size:14px; color:#555;">사회복지사 {min_social_val:,.0f}명</p>
         </div>
         """,
         unsafe_allow_html=True
